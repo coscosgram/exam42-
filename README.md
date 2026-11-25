@@ -1,8 +1,8 @@
-# Examshell · Rango 02
+# 42-Pocket · Rango 02
 
 **Español** · [English](#english)
 
-Simulador del examen de 42 (Rango 02: niveles 0–3, 55 ejercicios) pensado para el móvil. **Compila y prueba tu C dentro del navegador** (clang en WebAssembly): sin servidor, sin cuentas, sin IA.
+**42-Pocket**: el examen de 42 en el bolsillo. Simulador del examen (Rango 02: niveles 0–3, 55 ejercicios) pensado para el móvil. **Compila y prueba tu C dentro del navegador** (clang en WebAssembly): sin servidor, sin cuentas, sin IA.
 
 Creada por [@coscosgram](https://github.com/coscosgram).
 
@@ -43,7 +43,7 @@ Necesita `gcc`. Genera enunciados, soluciones y salidas esperadas a partir del r
 
 <a id="english"></a>
 
-A mobile-first simulator of the 42 School exam (Rank 02: levels 0–3, 55 exercises). **It compiles and tests your C right in the browser** (clang in WebAssembly): no server, no accounts, no AI.
+**42-Pocket**: the 42 exam in your pocket. A mobile-first simulator of the 42 School exam (Rank 02: levels 0–3, 55 exercises). **It compiles and tests your C right in the browser** (clang in WebAssembly): no server, no accounts, no AI.
 
 Created by [@coscosgram](https://github.com/coscosgram).
 

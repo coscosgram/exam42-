@@ -1,6 +1,6 @@
 {
-  "name": "Examshell Rango 02",
-  "short_name": "Examshell",
+  "name": "42-Pocket",
+  "short_name": "42-Pocket",
   "description": "Simulador del examen de 42 (Rango 02) con compilador en el navegador.",
   "lang": "es",
   "start_url": "./",
