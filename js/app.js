@@ -141,6 +141,65 @@ function downloadControl(done) {
 
 const NOWASM = !(window.Worker && window.WebAssembly && "DecompressionStream" in window && window.caches !== undefined);
 
+/* ---------- resaltado de sintaxis (C) ---------- */
+const C_KW = new Set('if else while for do return break continue switch case default goto sizeof typedef struct enum union static const extern volatile register inline'.split(' '));
+const C_TY = new Set('int char short long float double void unsigned signed size_t ssize_t bool FILE NULL'.split(' '));
+const C_RE = /(\/\*[\s\S]*?(?:\*\/|$)|\/\/[^\n]*)|("(?:\\.|[^"\\\n])*"?|'(?:\\.|[^'\\\n])*'?)|(^[ \t]*#[^\n]*)|(\b0[xX][0-9a-fA-F]+\b|\b\d+\b)|([A-Za-z_]\w*)/gm;
+function hl(src) {
+  let out = '', last = 0, m;
+  C_RE.lastIndex = 0;
+  while ((m = C_RE.exec(src))) {
+    if (m[0] === '') { C_RE.lastIndex++; continue; }
+    out += esc(src.slice(last, m.index)); last = m.index + m[0].length;
+    let cls;
+    if (m[1] !== undefined) cls = 'c';
+    else if (m[2] !== undefined) cls = 's';
+    else if (m[3] !== undefined) cls = 'p';
+    else if (m[4] !== undefined) cls = 'd';
+    else { const w = m[5]; cls = C_KW.has(w) ? 'k' : (C_TY.has(w) || /^t_\w+$/.test(w)) ? 'y' : src.slice(last).match(/^\s*\(/) ? 'f' : ''; }
+    out += cls ? '<span class="' + cls + '">' + esc(m[0]) + '</span>' : esc(m[0]);
+  }
+  return out + esc(src.slice(last));
+}
+const codeBlock = (text, cls = '') => h('pre', { class: 'code ' + cls, html: hl(text) });
+
+/* ---------- efectos ---------- */
+const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+const buzz = p => { try { if (!reduced() && navigator.vibrate) navigator.vibrate(p); } catch (e) {} };
+function confetti(n = 36) {
+  if (reduced()) return;
+  const cols = ['var(--accent)', 'var(--coin)', 'var(--t-kw)', 'var(--t-type)', 'var(--ink)'];
+  const fx = h('div', { class: 'fx' });
+  for (let i = 0; i < n; i++) {
+    const b = h('i'); const st = b.style;
+    st.left = Math.random() * 100 + '%'; st.background = rnd(cols);
+    st.setProperty('--d', (1 + Math.random() * 0.9) + 's'); st.setProperty('--x', (Math.random() * 120 - 60) + 'px'); st.setProperty('--r', (Math.random() * 720 - 360) + 'deg');
+    st.animationDelay = Math.random() * 0.25 + 's'; fx.append(b);
+  }
+  document.body.append(fx); setTimeout(() => fx.remove(), 2600);
+}
+function banner(title, sub, cb) {
+  const el = h('div', { class: 'banner' }, h('div', null, title, sub ? h('small', null, sub) : null));
+  document.body.append(el); confetti(); buzz([40, 50, 40]);
+  setTimeout(() => { el.remove(); cb(); }, reduced() ? 300 : 1100);
+}
+
+/* ---------- progreso: racha, récord, título ---------- */
+const dayStr = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+function streakNow() {
+  const st = LS.get('streak', null); if (!st) return 0;
+  const t = new Date(), y = new Date(); y.setDate(t.getDate() - 1);
+  return st.last === dayStr(t) || st.last === dayStr(y) ? st.n : 0;
+}
+function recordPass(name) {
+  passed.add(name); LS.set('passed', [...passed]);
+  const st = LS.get('streak', null), t = new Date(), y = new Date(); y.setDate(t.getDate() - 1);
+  if (!st) LS.set('streak', { last: dayStr(t), n: 1 });
+  else if (st.last !== dayStr(t)) LS.set('streak', { last: dayStr(t), n: st.last === dayStr(y) ? st.n + 1 : 1 });
+}
+const RANKS = ['Novato', 'Aprendiz', 'Coder', 'Hacker', '42 Master'];
+const rankOf = f => RANKS[f >= 1 ? 4 : f >= 0.6 ? 3 : f >= 0.3 ? 2 : f >= 0.08 ? 1 : 0];
+
 /* ---------- estado ---------- */
 let DATA = [];
 let passed = new Set(LS.get('passed', []));
@@ -172,24 +231,33 @@ function screenHome() {
   const nodes = [0, 1, 2, 3].map(l => {
     const done = exam && (exam.finished || exam.level > l);
     const cur = active && exam.level === l;
+    const tot = byLevel(l).length, got = byLevel(l).filter(e => passed.has(e.name)).length;
     return h('div', { class: 'node' + (done ? ' done' : '') + (cur ? ' cur' : '') },
-      h('span', { class: 'n' }, 'NIVEL ' + l),
-      h('span', { class: 'ex' }, exam && exam.picks[l] ? exam.picks[l] : '—'));
+      h('span', { class: 'n' }, 'ETAPA ' + l),
+      h('span', { class: 'ex' }, exam && exam.picks[l] ? exam.picks[l] : '—'),
+      h('span', { class: 'cnt' }, got + '/' + tot));
   });
-  const cnt = byLevel(0).length + byLevel(1).length + byLevel(2).length + byLevel(3).length;
-  const done = DATA.filter(e => passed.has(e.name)).length;
+  const cnt = DATA.length;
+  const done = DATA.filter(e => passed.has(e.name)).length, frac = cnt ? done / cnt : 0;
+  const best = LS.get('best', null), streak = streakNow();
+  const meter = h('i'); requestAnimationFrame(() => requestAnimationFrame(() => { meter.style.width = Math.round(frac * 100) + '%'; }));
   const s = h('div', { class: 'screen' },
     h('div', { class: 'scroll' },
       h('div', { class: 'hero' },
         h('div', { class: 'prompt' }, '/> examshell --rank 02'),
         h('h1', null, 'Rango 02'),
-        h('p', null, `Simulador del examen: 4 niveles seguidos, un ejercicio al azar en cada uno. ${cnt} ejercicios, ${done} superados.`)),
+        h('p', null, '4 etapas seguidas, un ejercicio al azar en cada una. Como el examen de verdad.')),
+      h('div', { class: 'stats' },
+        h('div', { class: 'stat' }, h('small', null, 'Superados'), h('b', null, done + '/' + cnt)),
+        h('div', { class: 'stat' }, h('small', null, 'Racha'), h('b', null, streak + (streak === 1 ? ' día' : ' días'))),
+        h('div', { class: 'stat' }, h('small', null, 'Récord'), h('b', null, best ? fmt(best) : '—'))),
+      h('div', { class: 'xp' }, h('div', { class: 'head' }, h('span', null, 'Rango: ', h('b', null, rankOf(frac))), h('span', null, Math.round(frac * 100) + '%')), h('div', { class: 'meter' }, meter)),
       h('div', { class: 'track' }, nodes),
       h('div', { class: 'row' },
         active
-          ? [h('button', { class: 'btn primary', style: 'flex:1', onclick: resumeExam }, `Continuar · nivel ${exam.level} · ${fmt(exam.acc)}`),
+          ? [h('button', { class: 'btn primary', style: 'flex:1', onclick: resumeExam }, `▶ Continuar · etapa ${exam.level} · ${fmt(exam.acc)}`),
              h('button', { class: 'btn ghost danger', onclick: () => { exam = null; LS.set('exam', null); screenHome(); } }, 'Abandonar')]
-          : h('button', { class: 'btn primary wide', onclick: newExam }, exam && exam.finished ? `Examen superado en ${fmt(exam.total)} · repetir` : 'Empezar examen')),
+          : h('button', { class: 'btn primary wide', onclick: newExam }, exam && exam.finished ? `▶ Repetir · último ${fmt(exam.total)}` : '▶ Empezar examen')),
       h('div', { class: 'cards' },
         card('{ }', 'Práctica libre', 'Elige un ejercicio concreto de cualquier nivel.', () => screenList()),
         card('↕', 'Ordenar líneas', 'Reconstruye una solución tocando las líneas. Sin teclado.', () => screenOrder()),
@@ -219,9 +287,16 @@ function otherExercise() {
   exam.picks[exam.level] = rnd(pool).name; LS.set('exam', exam); resumeExam();
 }
 function advanceExam() {
-  passed.add(exam.picks[exam.level]); LS.set('passed', [...passed]);
-  if (exam.level < 3) { exam.level++; LS.set('exam', exam); resumeExam(); }
-  else { exam.finished = true; exam.total = exam.acc; LS.set('exam', exam); screenFinish(); }
+  recordPass(exam.picks[exam.level]);
+  if (exam.level < 3) {
+    const l = exam.level; exam.level++; LS.set('exam', exam);
+    banner('Etapa ' + l + ' superada', 'Siguiente: etapa ' + exam.level, resumeExam);
+  } else {
+    exam.finished = true; exam.total = exam.acc;
+    const best = LS.get('best', null); exam.record = !best || exam.total < best; if (exam.record) LS.set('best', exam.total);
+    LS.set('exam', exam);
+    banner('¡Examen superado!', fmt(exam.total), screenFinish);
+  }
 }
 function screenFinish() {
   show(h('div', { class: 'screen' },
@@ -229,9 +304,10 @@ function screenFinish() {
       h('div', { class: 'hero' },
         h('div', { class: 'prompt' }, '/> exam finished'),
         h('h1', null, 'Rango 02 superado'),
-        h('p', null, `Tiempo activo: ${fmt(exam.total)}.`)),
-      h('div', { class: 'track' }, exam.picks.map((n, l) => h('div', { class: 'node done' }, h('span', { class: 'n' }, 'NIVEL ' + l), h('span', { class: 'ex' }, n)))),
+        h('p', null, `Tiempo activo: ${fmt(exam.total)}.` + (exam.record ? ' ¡Nuevo récord!' : ''))),
+      h('div', { class: 'track' }, exam.picks.map((n, l) => h('div', { class: 'node done' }, h('span', { class: 'n' }, 'ETAPA ' + l), h('span', { class: 'ex' }, n)))),
       h('button', { class: 'btn primary wide', onclick: screenHome }, 'Volver al inicio'))));
+  setTimeout(confetti, 150);
 }
 
 /* ---------- lista de práctica ---------- */
@@ -282,7 +358,12 @@ function makeEditor(ex, onChange) {
     }
     LS.set('draft:' + ex.name, ta.value); if (onChange) onChange();
   });
-  return { ta, node: h('div', { class: 'panel' }, row1, row2, ta, h('div', { class: 'hint-line' }, 'Los tabuladores son tabs reales, como pide la Norma.')) };
+  const pre = h('pre', { 'aria-hidden': 'true' });
+  const sync = () => { pre.innerHTML = hl(ta.value) + '\n '; pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; };
+  ta.addEventListener('input', sync);
+  ta.addEventListener('scroll', () => { pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; });
+  sync();
+  return { ta, node: h('div', { class: 'panel' }, row1, row2, h('div', { class: 'ed' }, pre, ta), h('div', { class: 'hint-line' }, 'Los tabuladores son tabs reales, como pide la Norma.')) };
 }
 
 /* ---------- ejercicio ---------- */
@@ -309,7 +390,7 @@ function screenExercise(ex, mode) {
     h('p', { class: 'note', style: 'margin-top:0' }, ex.main !== null && ex.main !== undefined
       ? 'El tester compila tu archivo junto con este main.c y compara la salida con la de la solución de referencia.'
       : 'El tester compila tu programa y compara su salida con la de la solución de referencia, con estos argumentos. Debe compilar con -Wall -Wextra -Werror.'));
-  if (ex.main) cases.append(h('details', null, h('summary', null, 'main.c del tester'), h('pre', { class: 'code' }, ex.main)));
+  if (ex.main) cases.append(h('details', null, h('summary', null, 'main.c del tester'), codeBlock(ex.main)));
   cases.append(h('div', { class: 'lbl' }, `${ex.tests.length} casos · salida esperada`));
   ex.tests.forEach((t, i) => cases.append(h('details', null,
     h('summary', null, (t.args ? './prog ' + t.args : './prog').slice(0, 140)),
@@ -327,9 +408,9 @@ function screenExercise(ex, mode) {
     if (!tested && !NOWASM) return null;
     const idx = isExam ? exam.level : -1;
     return h('div', { class: 'pass' },
-      h('p', null, tested ? 'Compila sin avisos y los ' + lastRun.total + ' casos dan la misma salida que la referencia.' : 'Tu navegador no puede compilar aquí. La comprobación básica no encuentra errores; si has revisado los casos, puedes darlo por bueno.'),
+      h('div', { class: 'big' }, tested ? '¡Todos los casos!' : 'Sin errores básicos'), h('p', null, tested ? 'Compila sin avisos y los ' + lastRun.total + ' casos dan la misma salida que la referencia.' : 'Tu navegador no puede compilar aquí. La comprobación básica no encuentra errores; si has revisado los casos, puedes darlo por bueno.'),
       h('button', { class: 'btn primary wide', onclick: () => {
-        if (isExam) advanceExam(); else { passed.add(ex.name); LS.set('passed', [...passed]); screenList(); }
+        if (isExam) advanceExam(); else { recordPass(ex.name); banner('¡Superado!', ex.name, screenList); }
       } }, isExam ? (idx < 3 ? `Superado · pasar al nivel ${idx + 1}` : 'Superado · terminar examen') : 'Marcar como superado'));
   };
   const runView = () => {
@@ -373,7 +454,7 @@ function screenExercise(ex, mode) {
   const runLocal = () => { lastLocal = checkCode(editor.ta.value, ex); renderOut(); setTab(3); };
   const showSolution = () => {
     aiBox = h('div', { class: 'ai' }, h('b', null, 'Solución de referencia'),
-      h('p', { class: 'note' }, 'Compara con la tuya.'), h('pre', { class: 'code' }, ex.ref));
+      h('p', { class: 'note' }, 'Compara con la tuya.'), codeBlock(ex.ref));
     renderOut(); setTab(3);
   };
   async function probar() {
@@ -386,6 +467,8 @@ function screenExercise(ex, mode) {
     try { lastRun = await runTests(ex, code, m => { if (statusEl) statusEl.textContent = m; }); }
     catch (e) { lastRun = { error: String(e.message || e) + ' Si persiste, recarga la página.' }; }
     busy = false; renderOut();
+    if (lastRun && lastRun.compileOk && !lastRun.timeout && lastRun.pass === lastRun.total && !lastLocal.some(r => r.level === 'err')) { confetti(28); buzz([30, 40, 30]); }
+    else buzz(90);
   }
   const act = h('div', { class: 'actions' },
     h('button', { class: 'btn', onclick: runLocal }, 'Comprobar'),
@@ -424,7 +507,7 @@ function screenOrder() {
         h('div', { class: 'lbl', style: 'margin-top:0' }, `${ex.name} · nivel ${ex.level}`),
         h('details', null, h('summary', null, 'Ver enunciado'), h('pre', { class: 'sub', style: 'padding:0 12px 12px' }, ex.sub)),
         h('div', { class: 'lbl' }, 'Tu orden'), ansEl,
-        solved ? h('div', null, h('div', { class: 'msg' }, 'Correcto. Así queda la solución con su sangrado:'), h('pre', { class: 'code' }, lines.join('\n')),
+        solved ? h('div', null, h('div', { class: 'msg' }, 'Correcto. Así queda la solución con su sangrado:'), codeBlock(lines.join('\n')),
           h('button', { class: 'btn primary wide', onclick: start }, 'Siguiente ejercicio'))
         : [h('div', { class: 'lbl' }, 'Líneas'), poolEl,
           h('div', { class: 'row', style: 'margin-top:14px' },
