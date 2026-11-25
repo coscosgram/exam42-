@@ -270,7 +270,7 @@ function screenHome() {
       h('div', { class: 'hero' },
         h('div', { class: 'prompt' }, '/> 42-pocket --rank 02'),
         h('h1', null, '42-Pocket'),
-        h('p', null, 'Rango 02 · 4 etapas seguidas, un ejercicio al azar en cada una. Como el examen de verdad.')),
+        h('p', null, 'Rango 02 · 4 etapas seguidas, un ejercicio al azar en cada una. Como el examen de verdad, pero en tu bolsillo.')),
       h('div', { class: 'stats' },
         h('div', { class: 'stat' }, h('small', null, 'Superados'), h('b', null, done + '/' + cnt)),
         h('div', { class: 'stat' }, h('small', null, 'Racha'), h('b', null, streak + (streak === 1 ? ' día' : ' días'))),
