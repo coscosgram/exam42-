@@ -90,6 +90,30 @@ function parseArgs(s) {
 }
 /* como `cat -e`: marca el final de cada línea con $ */
 const catE = s => (s === '' ? '(no imprime nada)' : s.replace(/\n/g, '$\n'));
+/* Resalta en cada salida lo que difiere de la otra: línea a línea, recortando prefijo y sufijo comunes.
+   Dentro de lo marcado, espacios y tabuladores se muestran como · y →. */
+function diffPair(a, b) {
+  const vis = t => esc(t).replace(/ /g, '·').replace(/\t/g, '→');
+  const A = a.split('\n'), B = b.split('\n'), n = Math.max(A.length, B.length), oa = [], ob = [];
+  for (let i = 0; i < n; i++) {
+    const la = A[i], lb = B[i];
+    const cut = (x, y) => {
+      if (x === undefined) return '';
+      if (y === undefined) return x === '' ? '' : '<mark class="df">' + vis(x) + '</mark>';
+      let p = 0; while (p < x.length && p < y.length && x[p] === y[p]) p++;
+      let q = 0; while (q < x.length - p && q < y.length - p && x[x.length - 1 - q] === y[y.length - 1 - q]) q++;
+      const mid = x.slice(p, x.length - q);
+      const other = y.slice(p, y.length - q);
+      return esc(x.slice(0, p)) + (mid ? '<mark class="df">' + vis(mid) + '</mark>' : other ? '<mark class="df">‸</mark>' : '') + esc(x.slice(x.length - q));
+    };
+    const same = la === lb;
+    const da = i < A.length - 1, db = i < B.length - 1, dl = (x, y) => (x ? (y ? '$' : '<mark class="df">$</mark>') : '');
+    oa.push(la === undefined ? null : (same ? esc(la) : cut(la, lb)) + dl(da, db));
+    ob.push(lb === undefined ? null : (same ? esc(lb) : cut(lb, la)) + dl(db, da));
+  }
+  const fin = arr => { const t = arr.filter(x => x !== null).join('\n'); return t === '' ? '(no imprime nada)' : t; };
+  return [fin(oa), fin(ob)];
+}
 const clip = (s, n = 600) => (s.length > n ? s.slice(0, n) + '…' : s);
 
 /* Compila el código del alumno con las mismas banderas que el primer test del tester
@@ -330,6 +354,9 @@ function topbar(title, sub, back, extra) {
 }
 
 /* ---------- editor ---------- */
+let edFs = Math.min(22, Math.max(12, LS.get('fs', 15)));
+const applyFs = () => document.documentElement.style.setProperty('--ed-fs', edFs + 'px');
+applyFs();
 const SYMS = ['⇥', '{', '}', '(', ')', '[', ']', ';', '*', '&', '"', "'", '\\', '#', '<', '>', '=', '+', '-', '!', '|', '%', '/', ',', '.', '->', '&&', '||', '==', '!=', '<=', '>=', '++', '--', "'\\0'", "'\\n'"];
 const MACROS = [
   ['#include <unistd.h>', '#include <unistd.h>\n'], ['#include <stdlib.h>', '#include <stdlib.h>\n'],
@@ -342,6 +369,7 @@ function insertText(ta, text, back) {
   if (!ok) { ta.setRangeText(text, ta.selectionStart, ta.selectionEnd, 'end'); ta.dispatchEvent(new Event('input', { bubbles: true })); }
   if (back) { const p = ta.selectionStart - back; ta.setSelectionRange(p, p); }
 }
+const fsBtn = (t, label, d) => h('button', { type: 'button', 'aria-label': label, onclick: () => { edFs = Math.min(22, Math.max(12, edFs + d)); LS.set('fs', edFs); applyFs(); } }, t);
 function makeEditor(ex, onChange) {
   const ta = h('textarea', { class: 'editor', id: 'code', spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off', autocomplete: 'off', wrap: 'off', placeholder: `// ${ex.name}.c` });
   ta.value = LS.get('draft:' + ex.name, '');
@@ -363,7 +391,7 @@ function makeEditor(ex, onChange) {
   ta.addEventListener('input', sync);
   ta.addEventListener('scroll', () => { pre.scrollTop = ta.scrollTop; pre.scrollLeft = ta.scrollLeft; });
   sync();
-  return { ta, node: h('div', { class: 'panel' }, row1, row2, h('div', { class: 'ed' }, pre, ta), h('div', { class: 'hint-line' }, 'Los tabuladores son tabs reales, como pide la Norma.')) };
+  return { ta, node: h('div', { class: 'panel' }, row1, row2, h('div', { class: 'ed' }, pre, ta), h('div', { class: 'hint-line' }, h('span', null, 'Los tabuladores son tabs reales, como pide la Norma.'), fsBtn('A−', 'Reducir letra', -1), fsBtn('A+', 'Aumentar letra', 1))) };
 }
 
 /* ---------- ejercicio ---------- */
@@ -426,11 +454,11 @@ function screenExercise(ex, mode) {
     r.cases.forEach(c => {
       const open = !c.same && !openOne; if (open) openOne = true;
       nodes.push(h('details', { open }, h('summary', { class: 'sum ' + (c.same ? 'ok' : 'bad') }, (c.args ? './prog ' + c.args : './prog').slice(0, 140)),
-        c.same ? null : [h('div', { class: 'lbl', style: 'margin:0 10px' }, 'Esperado'), h('pre', { class: 'code' }, clip(catE(c.exp))),
-          h('div', { class: 'lbl', style: 'margin:0 10px' }, 'Obtenido'), h('pre', { class: 'code' }, clip(catE(c.got))),
-          c.trap ? h('p', { class: 'note', style: 'margin:0 10px 10px' }, 'El programa se detuvo con un fallo: ' + c.trap) : null]));
+        c.same ? null : (() => { const [de, dg] = diffPair(clip(c.exp, 1500), clip(c.got, 1500)); return [h('div', { class: 'lbl', style: 'margin:0 10px' }, 'Esperado'), h('pre', { class: 'code exp', html: de }),
+          h('div', { class: 'lbl', style: 'margin:0 10px' }, 'Obtenido'), h('pre', { class: 'code got', html: dg }),
+          c.trap ? h('p', { class: 'note', style: 'margin:0 10px 10px' }, 'El programa se detuvo con un fallo: ' + c.trap) : null]; })()));
     });
-    nodes.push(h('p', { class: 'note' }, 'Cada «$» marca un salto de línea. Se compara la salida estándar completa, como el tester.'));
+    nodes.push(h('p', { class: 'note' }, 'Cada «$» marca un salto de línea. En verde y rojo, lo que difiere; · es un espacio, → un tabulador y ‸ marca dónde falta algo. Se compara la salida estándar completa, como el tester.'));
     return h('div', null, nodes);
   };
   const renderOut = () => {

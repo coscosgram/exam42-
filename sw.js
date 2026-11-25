@@ -1,8 +1,8 @@
 /* Service worker: la app (pequeña) se precachea; el compilador (~19 MB) lo guarda el propio worker en 'xs42-assets-v1'. */
-const SHELL = 'xs42-shell-v3';
+const SHELL = 'xs42-shell-v4';
 const FILES = ['./', 'index.html', 'css/style.css', 'js/checker.js', 'js/app.js', 'js/toolchain.js', 'js/wasmapi.js', 'data/rank02.json', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
-  'fonts/press-start-2p-latin-400-normal.woff2',
+  'fonts/press-start-2p-latin-400-normal.woff2', 'fonts/vt323-latin-400-normal.woff2',
   'fonts/ibm-plex-mono-latin-400-normal.woff2', 'fonts/ibm-plex-mono-latin-500-normal.woff2', 'fonts/ibm-plex-mono-latin-600-normal.woff2',
   'fonts/ibm-plex-sans-latin-400-normal.woff2', 'fonts/ibm-plex-sans-latin-500-normal.woff2', 'fonts/ibm-plex-sans-latin-600-normal.woff2'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(SHELL).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
