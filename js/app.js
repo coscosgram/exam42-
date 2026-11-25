@@ -208,6 +208,34 @@ function banner(title, sub, cb) {
   setTimeout(() => { el.remove(); cb(); }, reduced() ? 300 : 1100);
 }
 
+
+/* ---------- tema: sistema / claro / oscuro ---------- */
+const THEMES = ['system', 'light', 'dark'], THEME_NAME = { system: 'sistema', light: 'claro', dark: 'oscuro' };
+const ART = {
+  light: ['.....XX.....', '.XX..XX..XX.', '.XX......XX.', '....XXXX....', '...XXXXXX...', 'XX.XXXXXX.XX', 'XX.XXXXXX.XX', '...XXXXXX...', '....XXXX....', '.XX......XX.', '.XX..XX..XX.', '.....XX.....'],
+  dark: ['....XXXX....', '...XXX......', '..XXX.......', '.XXXX.......', '.XXXX.......', '.XXXX.......', '.XXXX.....X.', '..XXXX...XX.', '..XXXXXXXXX.', '...XXXXXXX..', '....XXXXX...', '............'],
+  system: ['....XXoo....', '..XXXXoooo..', '.XXXXXooooo.', '.XXXXXooooo.', 'XXXXXXoooooo', 'XXXXXXoooooo', 'XXXXXXoooooo', 'XXXXXXoooooo', '.XXXXXooooo.', '.XXXXXooooo.', '..XXXXoooo..', '....XXoo....']
+};
+function pixelIcon(art) {
+  let r = '';
+  art.forEach((row, y) => { for (const m of row.matchAll(/X+|o+/g)) r += `<rect x="${m.index}" y="${y}" width="${m[0].length}" height="1"${m[0][0] === 'o' ? ' opacity=".35"' : ''}/>`; });
+  return `<svg viewBox="0 0 12 12" fill="currentColor" shape-rendering="crispEdges" aria-hidden="true">${r}</svg>`;
+}
+function applyTheme(t) {
+  const r = document.documentElement;
+  if (t === 'system') r.removeAttribute('data-theme'); else r.setAttribute('data-theme', t);
+  const metas = document.querySelectorAll('meta[name="theme-color"]');
+  if (metas.length === 2) { const c = t === 'light' ? ['#DCE8CC', '#DCE8CC'] : t === 'dark' ? ['#07100B', '#07100B'] : ['#DCE8CC', '#07100B']; metas[0].content = c[0]; metas[1].content = c[1]; }
+}
+let theme = THEMES.includes(LS.get('theme', 'system')) ? LS.get('theme', 'system') : 'system';
+applyTheme(theme);
+function themeButton() {
+  const b = h('button', { class: 'theme', type: 'button' });
+  const draw = () => { b.innerHTML = pixelIcon(ART[theme]); b.setAttribute('aria-label', 'Tema: ' + THEME_NAME[theme] + '. Toca para cambiar.'); b.title = 'Tema: ' + THEME_NAME[theme]; };
+  b.addEventListener('click', () => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; LS.set('theme', theme); applyTheme(theme); draw(); buzz(15); });
+  draw(); return b;
+}
+
 /* ---------- progreso: racha, récord, título ---------- */
 const dayStr = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 function streakNow() {
@@ -267,7 +295,7 @@ function screenHome() {
   const meter = h('i'); requestAnimationFrame(() => requestAnimationFrame(() => { meter.style.width = Math.round(frac * 100) + '%'; }));
   const s = h('div', { class: 'screen' },
     h('div', { class: 'scroll' },
-      h('div', { class: 'hero' },
+      h('div', { class: 'hero' }, themeButton(),
         h('div', { class: 'prompt' }, '/> 42-pocket --rank 02'),
         h('h1', null, '42-Pocket'),
         h('p', null, 'Rango 02 · 4 etapas seguidas, un ejercicio al azar en cada una. Como el examen de verdad, pero en tu bolsillo.')),
