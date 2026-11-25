@@ -262,7 +262,7 @@ function screenHome() {
         card('{ }', 'Práctica libre', 'Elige un ejercicio concreto de cualquier nivel.', () => screenList()),
         card('↕', 'Ordenar líneas', 'Reconstruye una solución tocando las líneas. Sin teclado.', () => screenOrder()),
         card('▾', 'Rellenar huecos', 'Completa operadores y valores de una solución. Sin teclado.', () => screenGaps())),
-      h('p', { class: 'foot' }, 'Autoría: los ejercicios, las soluciones de referencia y el código de las pruebas (testers) son obra de ',
+      h('p', { class: 'foot' }, 'App creada por ', h('a', { href: 'https://github.com/coscosgram', target: '_blank', rel: 'noopener' }, '@coscosgram'), '. Autoría: los ejercicios, las soluciones de referencia y el código de las pruebas (testers) son obra de ',
         h('b', null, 'terminal-42s'), ', del repositorio ',
         h('a', { href: 'https://github.com/terminal-42s/42_examshell', target: '_blank', rel: 'noopener' }, 'terminal-42s/42_examshell'),
         '. «Probar» compila y ejecuta tu código en el propio navegador (clang en WebAssembly): la primera vez descarga unos ' + ASSET_MB + ' MB y después funciona sin conexión.')));
