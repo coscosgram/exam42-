@@ -18,7 +18,7 @@ Creada por [@coscosgram](https://github.com/coscosgram).
 
 ## Autoría
 
-- **App** (interfaz, integración del compilador, comprobador estático, modos de práctica): [@coscosgram](https://github.com/coscosgram).
+- **App** (interfaz, integración del compilador, comprobador estático, modos de práctica): **David Costa Pradillo** ([@coscosgram](https://github.com/coscosgram)) · [LinkedIn](https://www.linkedin.com/in/david-costa-pradillo-8a580965).
 - **Ejercicios, soluciones de referencia y código de las pruebas** (`tester.sh`, `main.c`): obra de **terminal-42s**, del repositorio [terminal-42s/42_examshell](https://github.com/terminal-42s/42_examshell). Esta app sólo los reempaqueta para ejecutarlos en el navegador; el mérito del contenido es suyo.
 - Compilador: [wasm-clang](https://github.com/binji/wasm-clang) (binji), clang/LLVM 8 — Apache-2.0.
 - Detalle de licencias de terceros en [`THIRD_PARTY.md`](THIRD_PARTY.md).
@@ -59,7 +59,7 @@ Created by [@coscosgram](https://github.com/coscosgram).
 
 ### Credits
 
-- **App** (UI, compiler integration, static checker, practice modes): [@coscosgram](https://github.com/coscosgram).
+- **App** (UI, compiler integration, static checker, practice modes): **David Costa Pradillo** ([@coscosgram](https://github.com/coscosgram)) · [LinkedIn](https://www.linkedin.com/in/david-costa-pradillo-8a580965).
 - **Exercises, reference solutions and test code** (`tester.sh`, `main.c`): by **terminal-42s**, from [terminal-42s/42_examshell](https://github.com/terminal-42s/42_examshell). This app only repackages them to run in the browser; the credit for the content is theirs.
 - Compiler: [wasm-clang](https://github.com/binji/wasm-clang) (binji), clang/LLVM 8 — Apache-2.0.
 - Third-party license details in [`THIRD_PARTY.md`](THIRD_PARTY.md).
